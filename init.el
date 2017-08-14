@@ -62,7 +62,6 @@ values."
      syntax-checking
      (osx  :variables
            mac-right-option-modifier nil)
-           ;; osx-use-option-as-meta nil)
      ;; version-control
      )
    ;; List of additional packages that will be installed without being

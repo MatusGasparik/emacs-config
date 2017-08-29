@@ -49,6 +49,7 @@ values."
             )
      (mu4e :variables
            mu4e-enable-notifications t
+           mu4e-enable-mode-line t
            mu4e-installation-path "/usr/local/Cellar/mu/0.9.18_1/share/emacs/site-lisp/mu/mu4e/"
            )
      org
@@ -331,6 +332,10 @@ you should place your code here."
   ;; system
   (add-to-list 'exec-path "/usr/local/bin")
 
+  ;; User
+  (setq user-mail-address "matus.gasparik@gmail.com"
+        user-full-name "Matus Gasparik")
+
   ;; LaTeX
   (add-hook 'doc-view-mode-hook 'auto-revert-mode)
 
@@ -338,13 +343,36 @@ you should place your code here."
   ;; tell mu4e how to sync email
   (setq mu4e-get-mail-command "mbsync -a"
         mu4e-attachment-dir  "~/Downloads"
-        mu4e-update-interval 60)
+        mu4e-update-interval 120
+        mu4e-compose-signature-auto-include nil
+        mu4e-view-show-images t
+        mu4e-view-image-max-width 800
+        mu4e-view-show-addresses t
+        mu4e-compose-dont-reply-to-self t
+        mu4e-sent-messages-behavior 'delete
+        mu4e-compose-dont-reply-to-self t
+        mu4e-index-cleanup nil      ;; don't do a full cleanup check
+        mu4e-index-lazy-check t)    ;; don't consider up-to-date dirs
 
   (setq
    mu4e-maildir       "~/.maildir/gmail"   ;; top-level Maildir
    mu4e-sent-folder   "/.Sent Mail"       ;; folder for sent messages
    mu4e-drafts-folder "/.Drafts"     ;; unfinished messages
    mu4e-trash-folder  "/.Trash")      ;; trashed messages
+
+  ;;; Mail directory shortcuts
+  (setq mu4e-maildir-shortcuts
+        '(("/inbox" . ?i)
+          ("/.Sent Mail" . ?s)
+          ("/.Trash" . ?t)
+          ("/.Drafts" . ?d)))
+
+  ;;; msmtp
+  (setq message-send-mail-function 'message-send-mail-with-sendmail
+        sendmail-program "msmtp"
+        message-sendmail-extra-arguments '("--read-envelope-from")
+        message-sendmail-f-is-evil 't
+        message-sendmail-extra-arguments '("-C" "/Users/matus/.spacemacs.d/msmtprc" "-a" "gmail"))
 
   (with-eval-after-load 'mu4e-alert
     ;; Enable Desktop notifications

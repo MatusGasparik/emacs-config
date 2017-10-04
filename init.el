@@ -31,6 +31,7 @@ values."
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
    '(
+     csv
      html
      ;; ----------------------------------------------------------------
      ;; Example of useful layers you may want to use right away.
@@ -38,7 +39,12 @@ values."
      ;; <M-m f e R> (Emacs style) to install them.
      ;; ----------------------------------------------------------------
      helm
-     auto-completion
+     (auto-completion :variables
+                      auto-completion-return-key-behavior 'complete
+                      auto-completion-tab-key-behavior 'cycle
+                      auto-completion-complete-with-key-sequence nil
+                      auto-completion-complete-with-key-sequence-delay 1
+                      auto-completion-private-snippets-directory nil)
      ;; better-defaults
      bibtex
      emacs-lisp
@@ -53,7 +59,9 @@ values."
            mu4e-enable-mode-line t
            mu4e-installation-path "/usr/local/Cellar/mu/0.9.18_1/share/emacs/site-lisp/mu/mu4e/"
            )
-     org
+     (org :variables
+          org-enable-reveal-js-support t
+          )
      (shell :variables
             shell-default-shell 'eshell
             shell-default-term-shell "/bin/bash"
@@ -68,6 +76,7 @@ values."
      syntax-checking
      (osx  :variables
            mac-right-option-modifier nil)
+     w3m
      ;; version-control
      )
    ;; List of additional packages that will be installed without being
@@ -341,6 +350,56 @@ you should place your code here."
   ;; LaTeX
   (add-hook 'doc-view-mode-hook 'auto-revert-mode)
 
+  ;; org-mode
+  (setq org-agenda-files (list "/Users/matus/Documents/ORG")
+        org-default-notes-file "/Users/matus/Documents/ORG/todo.org"
+        org-log-done t
+        org-agenda-include-diary t
+        org-src-ask-before-returning-to-edit-buffer nil
+        org-src-fontify-natively t
+        )
+
+  ;; ToDo keywords
+  (setq org-todo-keywords (quote ((sequence "TODO(t)" "NEXT(n)" "WAITING(w@/!)" "|" "DONE(d!)")
+                                  (sequence "APPLY(a)" "APPLIED(A!)" "|" "OFFER(O!)" "REJECTION(R@!)"))))
+
+  (setq org-capture-templates
+        '(("t" "Todo" entry (file+headline "/Users/matus/Documents/ORG/todo.org" "Tasks")
+           "* TODO %?\n  %i\n  %a")
+
+          ("r" "respond" entry (file+headline "/Users/matus/Documents/ORG/todo.org" "Tasks")
+           "* NEXT Reply to %:from on %:subject\nSCHEDULED: <%(org-read-date nil nil \"+1d\")>\n%U\n%a\n" :immediate-finish t)
+
+          ("H" "Job Hunt" entry (file+headline "/Users/matus/Documents/ORG/todo.org" "JOB")
+           "** %^{Company/Institution name}
+:PROPERTIES:
+:DESCRIPTION: %^{Description}
+:LOCATION: %^{Location}
+:OPEN-POSSITION: %^{Open positions? (y/n/?)}
+:URL: %^{url}
+:CONTACT: %^{Contact person}
+:APPLIED:
+:END:
+Captured: %t
+
+*NOTES*")))
+
+  ;; w3m for web browsing
+  (defun dotspacemacs/user-config ()
+    (setq w3m-home-page "https://www.google.com")
+    ;; W3M Home Page
+    (setq w3m-default-display-inline-images t)
+    (setq w3m-default-toggle-inline-images t)
+    ;; W3M default display images
+    (setq w3m-command-arguments '("-cookie" "-F"))
+    (setq w3m-use-cookies t)
+    ;; W3M use cookies
+    (setq browse-url-browser-function 'w3m-browse-url)
+    ;; Browse url function use w3m
+    (setq w3m-view-this-url-new-session-in-background t)
+    ;; W3M view url new session in background
+    )
+
   ;; mu4e
   ;; tell mu4e how to sync email
   (setq mu4e-get-mail-command "mbsync -a"
@@ -417,7 +476,7 @@ you should place your code here."
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
    (quote
-    (web-mode tagedit slim-mode scss-mode sass-mode pug-mode less-css-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data auctex-latexmk mu4e-maildirs-extension mu4e-alert ht flyspell-popup xterm-color shell-pop org-ref pdf-tools key-chord ivy tablist multi-term helm-bibtex parsebib eshell-z eshell-prompt-extras esh-help biblio biblio-core company-auctex auctex yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode helm-pydoc cython-mode company-anaconda anaconda-mode pythonic smeargle orgit magit-gitflow helm-gitignore gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link evil-magit magit magit-popup git-commit with-editor reveal-in-osx-finder pbcopy osx-trash osx-dictionary launchctl org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-download htmlize helm-company helm-c-yasnippet gnuplot fuzzy flyspell-correct-helm flyspell-correct flycheck-pos-tip pos-tip flycheck company-statistics company auto-yasnippet yasnippet auto-dictionary ac-ispell auto-complete ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint info+ indent-guide hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation hide-comnt help-fns+ helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async org-plus-contrib evil-unimpaired f s dash))))
+    (ox-reveal helm-w3m w3m csv-mode web-mode tagedit slim-mode scss-mode sass-mode pug-mode less-css-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data auctex-latexmk mu4e-maildirs-extension mu4e-alert ht flyspell-popup xterm-color shell-pop org-ref pdf-tools key-chord ivy tablist multi-term helm-bibtex parsebib eshell-z eshell-prompt-extras esh-help biblio biblio-core company-auctex auctex yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode helm-pydoc cython-mode company-anaconda anaconda-mode pythonic smeargle orgit magit-gitflow helm-gitignore gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link evil-magit magit magit-popup git-commit with-editor reveal-in-osx-finder pbcopy osx-trash osx-dictionary launchctl org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-download htmlize helm-company helm-c-yasnippet gnuplot fuzzy flyspell-correct-helm flyspell-correct flycheck-pos-tip pos-tip flycheck company-statistics company auto-yasnippet yasnippet auto-dictionary ac-ispell auto-complete ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint info+ indent-guide hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation hide-comnt help-fns+ helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async org-plus-contrib evil-unimpaired f s dash))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

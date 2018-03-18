@@ -31,7 +31,17 @@ values."
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
    '(
+     markdown
+     javascript
+     (julia :variables
+            julia-executable "/usr/local/bin/julia")
+     vimscript
+     yaml
      csv
+     (c-c++ :variables
+            c-c++-default-mode-for-headers 'c++-mode
+            c-c++-enable-clang-support t)
+     docker
      html
      ;; ----------------------------------------------------------------
      ;; Example of useful layers you may want to use right away.
@@ -47,6 +57,7 @@ values."
                       auto-completion-private-snippets-directory nil)
      ;; better-defaults
      bibtex
+     common-lisp
      emacs-lisp
      git
      ;; markdown
@@ -63,15 +74,20 @@ values."
           org-enable-reveal-js-support t
           )
      (shell :variables
-            shell-default-shell 'eshell
-            shell-default-term-shell "/bin/bash"
-            shell-enable-smart-eshell t
-            ;; shell-default-height 30
-            shell-default-position 'right)
+            shell-default-shell 'ansi-term
+            shell-default-term-shell "/usr/local/bin/zsh"
+            shell-default-position 'right
+            shell-default-full-span nil
+            )
      (python :variables
+             python-enable-yapf-format-on-save t
+             python-fill-column 88
+             python-sort-imports-on-save t
              python-test-runner 'pytest)
+     (ipython-notebook)
      (spell-checking :variables
                      enable-flyspell-auto-completion t
+                     spell-checking-enable-by-default nil
                      spell-checking-enable-auto-dictionary t)
      syntax-checking
      (osx  :variables
@@ -131,7 +147,7 @@ values."
    ;; with `:variables' keyword (similar to layers). Check the editing styles
    ;; section of the documentation for details on available variables.
    ;; (default 'vim)
-   dotspacemacs-editing-style 'hybrid
+   dotspacemacs-editing-style 'vim
    ;; If non nil output loading progress in `*Messages*' buffer. (default nil)
    dotspacemacs-verbose-loading nil
    ;; Specify the startup banner. Default value is `official', it displays
@@ -147,8 +163,8 @@ values."
    ;; `recents' `bookmarks' `projects' `agenda' `todos'."
    ;; List sizes may be nil, in which case
    ;; `spacemacs-buffer-startup-lists-length' takes effect.
-   dotspacemacs-startup-lists '((recents . 5)
-                                (projects . 7))
+   dotspacemacs-startup-lists '((todos . 10)
+                                (projects . 5))
    ;; True if the home buffer should respond to resize events.
    dotspacemacs-startup-buffer-responsive t
    ;; Default major mode of the scratch buffer (default `text-mode')
@@ -164,7 +180,7 @@ values."
    ;; quickly tweak the mode-line size to make separators look not too crappy.
    dotspacemacs-default-font '("Source Code Pro"
                                :size 13
-                               :weight normal
+                               :weight regular
                                :width normal
                                :powerline-scale 1.1)
    ;; The leader key
@@ -250,14 +266,14 @@ values."
    dotspacemacs-loading-progress-bar t
    ;; If non nil the frame is fullscreen when Emacs starts up. (default nil)
    ;; (Emacs 24.4+ only)
-   dotspacemacs-fullscreen-at-startup nil
+   dotspacemacs-fullscreen-at-startup t
    ;; If non nil `spacemacs/toggle-fullscreen' will not use native fullscreen.
    ;; Use to disable fullscreen animations in OSX. (default nil)
    dotspacemacs-fullscreen-use-non-native nil
    ;; If non nil the frame is maximized when Emacs starts up.
    ;; Takes effect only if `dotspacemacs-fullscreen-at-startup' is nil.
    ;; (default nil) (Emacs 24.4+ only)
-   dotspacemacs-maximized-at-startup t
+   dotspacemacs-maximized-at-startup nil
    ;; A value from the range (0..100), in increasing opacity, which describes
    ;; the transparency level of a frame when it's active or selected.
    ;; Transparency can be toggled through `toggle-transparency'. (default 90)
@@ -271,7 +287,7 @@ values."
    ;; If non nil show the color guide hint for transient state keys. (default t)
    dotspacemacs-show-transient-state-color-guide t
    ;; If non nil unicode symbols are displayed in the mode line. (default t)
-   dotspacemacs-mode-line-unicode-symbols t
+   dotspacemacs-mode-line-unicode-symbols nil
    ;; If non nil smooth scrolling (native-scrolling) is enabled. Smooth
    ;; scrolling overrides the default behavior of Emacs which recenters point
    ;; when it reaches the top or bottom of the screen. (default t)
@@ -330,7 +346,10 @@ executes.
  This function is mostly useful for variables that need to be set
 before packages are loaded. If you are unsure, you should try in setting them in
 `dotspacemacs/user-config' first."
+  (setenv "WORKON_HOME" "~/anaconda3/envs")
+  ;;(shell-command "source ~/.bash_profile")
   )
+
 
 (defun dotspacemacs/user-config ()
   "Configuration function for user code.
@@ -340,8 +359,20 @@ This is the place where most of your configurations should be done. Unless it is
 explicitly specified that a variable should be set before a package is loaded,
 you should place your code here."
 
+  ;; custom keys
+  (spacemacs/set-leader-keys "=" 'calculator)
+
+  ;; make calculator insert the result upot hitting C-Enter
+  (defadvice calculator-save-and-quit (after yank-answer activate) (yank))
+
   ;; system
   (add-to-list 'exec-path "/usr/local/bin")
+
+  ;; auto-fill by default for a specific mode
+  (add-hook 'org-mode-hook 'turn-on-auto-fill)
+
+  ;; auto-fill for all major modes
+  ;; (setq-default auto-fill-function 'do-auto-fill)
 
   ;; User
   (setq user-mail-address "matus.gasparik@gmail.com"
@@ -351,54 +382,136 @@ you should place your code here."
   (add-hook 'doc-view-mode-hook 'auto-revert-mode)
 
   ;; org-mode
-  (setq org-agenda-files (list "/Users/matus/Documents/ORG")
-        org-default-notes-file "/Users/matus/Documents/ORG/todo.org"
-        org-log-done t
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((dot    . t)
+     (shell  . t)
+     (python . t)
+     (lisp   . t)
+     (sqlite . t)
+     (latex  . t)
+     ))
+
+  ;; make latex preview fragments larger
+  (setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
+
+  (setq org-agenda-files (list "/Users/matus/Documents/ORG"
+                               "/Users/matus/_projects/isendi/ORG"
+                               "/Users/matus/Dropbox/ORG/HOME"
+                               "/Users/matus/Dropbox/ORG/org-share"
+                               "/Users/matus/Dropbox/ORG/Moje")
+        org-default-notes-file "/Users/matus/Dropbox/ORG/Moje/agenda.org"
+        org-startup-indented t
+        org-log-done 'time
         org-agenda-include-diary t
+        org-startup-indented t
         org-src-ask-before-returning-to-edit-buffer nil
+        org-confirm-babel-evaluate nil
         org-src-fontify-natively t
+        org-refile-targets '(
+                             (nil :maxlevel . 3)
+                             (org-agenda-files :maxlevel . 3))
         )
 
   ;; ToDo keywords
-  (setq org-todo-keywords (quote ((sequence "TODO(t)" "NEXT(n)" "WAITING(w@/!)" "|" "DONE(d!)")
-                                  (sequence "APPLY(a)" "APPLIED(A!)" "|" "OFFER(O!)" "REJECTION(R@!)"))))
+  (setq org-todo-keywords (quote ((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")
+                                  (sequence "KAUFEN(k)" "|" "GEKAUFT(K@!)")
+                                  (sequence "APPLY(a)" "WAITING(w@/!)" "OFFER(o@!)" "|" "REJECTION(r@!)")
+                                  (sequence   "|" "CANCELED(c@)" ))))
 
   (setq org-capture-templates
-        '(("t" "Todo" entry (file+headline "/Users/matus/Documents/ORG/todo.org" "Tasks")
+        '(("t" "ToDo" entry (file+headline "/Users/matus/Dropbox/ORG/Moje/agenda.org" "INBOX")
            "* TODO %?\n  %i\n  %a")
 
-          ("r" "respond" entry (file+headline "/Users/matus/Documents/ORG/todo.org" "Tasks")
-           "* NEXT Reply to %:from on %:subject\nSCHEDULED: <%(org-read-date nil nil \"+1d\")>\n%U\n%a\n" :immediate-finish t)
+          ("T" "HOME ToDo" entry (file+headline "/Users/matus/Dropbox/ORG/HOME/HomeOrganizer.org" "AUFGABEN")
+           "* TODO %? \nSCHEDULED:%^T\n")
 
-          ("H" "Job Hunt" entry (file+headline "/Users/matus/Documents/ORG/todo.org" "JOB")
-           "** %^{Company/Institution name}
+          ("K" "EINKAUFEN" entry (file+headline "/Users/matus/Dropbox/ORG/HOME/HomeOrganizer.org" "EINKÄUFE")
+           "* KAUFEN [/] Summe: € \n+ %?")
+
+          ("r" "Respond" entry (file+headline "/Users/matus/Documents/ORG/todo-local.org" "Tasks")
+           "* NEXT Reply to %:from on %:subject :email:\nSCHEDULED: <%(org-read-date nil nil \"+1d\")>\n%U\n%a\n" :immediate-finish t)
+
+;;           ("H" "Job Hunt" entry (file+headline "/Users/matus/Documents/ORG/todo.org" "JOB")
+;;            "* APPLY at %^{Company/Institution name} :job:
+;; :PROPERTIES:
+;; :DESCRIPTION: %^{Description}p
+;; :LOCATION: %^{Location}
+;; :OPEN-POSSITION: %^{Open positions?|y|n|?}
+;; :URL: %^{url}
+;; :CONTACT: %^{Contact person}
+;; :APPLIED:
+;; :END:
+
+;; %t
+
+;; *NOTES*\n%?")
+
+          ("n" "Note" entry (file "/Users/matus/Dropbox/ORG/Moje/Notes.org")
+           "* %^{Title} \n %?")
+
+          ("j" "Journal" entry (file+datetree "/Users/matus/Dropbox/ORG/Moje/Journal.org.gpg")
+           "* %?\n%U\n")
+
+          ("e" "Inbox message on org-share" entry (file+headline "/Users/matus/Dropbox/ORG/org-share/learning-plan.org" "INBOX")
+           "* NEW %U -> Josephus :: %^{Subject}\n%?\n%a\n" :prepend t)
+
+          ("s" "New Snippet" entry (file+headline "/Users/matus/Dropbox/ORG/org-share/learning-plan.org" "Snippets")
+           "* %^{Title}\n** Description\n%?\n** Code\n#+BEGIN_SRC %^{Language}\n\n#+END_SRC\n" :prepend t)
+
+          ("m" "Meeting" entry (file+headline "/Users/matus/Dropbox/ORG/Moje/Notes.org" "ToDo")
+           "* TODO Meeting with %? :meeting:%^G\nSCHEDULED: %^T")
+
+          ("p" "Phone call" entry (file+headline "/Users/matus/Dropbox/ORG/Moje/Notes.org" "Phone calls")
+           "* %? :phone:
 :PROPERTIES:
-:DESCRIPTION: %^{Description}
-:LOCATION: %^{Location}
-:OPEN-POSSITION: %^{Open positions? (y/n/?)}
-:URL: %^{url}
-:CONTACT: %^{Contact person}
-:APPLIED:
+:CONTACT-PERSON: %^{Contact person}
+:DATE: %U
+:PHONE-NO: %^{Phone-no.}
 :END:
-Captured: %t
 
-*NOTES*")))
+*NOTE:* ")
+          ))
+
+  ; Tags with fast selection keys
+  (setq org-tag-alist (quote ((:startgroup)
+                              ("@home" . ?H)
+                              ("@office" . ?O)
+                              ("@city" . ?C)
+                              (:endgroup)
+                              ("phone" . ?t)
+                              ("email" . ?e)
+                              ("personal" . ?p)
+                              ("code" . ?c)
+                              ("job" . ?j)
+                              ("meeting" . ?m)
+                              ("family" . ?f)
+                              ("note" . ?n)
+                              )))
+
+  ;; BibTeX
+  (setq org-ref-default-bibliography '("/Users/matus/Dropbox/ORG/org-share/BibTeX_files/Matus/library.bib")
+        org-ref-pdf-directory "/Users/matus/Dropbox/ORG/org-share/BibTeX_files/Matus/PDFs"
+        bibtex-completion-pdf-field "file"
+        helm-bibtex-bibliography '("/Users/matus/Dropbox/ORG/org-share/BibTeX_files/Matus/library.bib")
+        helm-bibtex-library-path '("/Users/matus/Dropbox/ORG/org-share/BibTeX_files/Matus/PDFs")
+        )
 
   ;; w3m for web browsing
-  (defun dotspacemacs/user-config ()
-    (setq w3m-home-page "https://www.google.com")
-    ;; W3M Home Page
-    (setq w3m-default-display-inline-images t)
-    (setq w3m-default-toggle-inline-images t)
-    ;; W3M default display images
-    (setq w3m-command-arguments '("-cookie" "-F"))
-    (setq w3m-use-cookies t)
-    ;; W3M use cookies
-    (setq browse-url-browser-function 'w3m-browse-url)
-    ;; Browse url function use w3m
-    (setq w3m-view-this-url-new-session-in-background t)
-    ;; W3M view url new session in background
-    )
+  ;; (defun dotspacemacs/user-config ()
+  (setq w3m-home-page "https://www.google.com")
+  ;; W3M Home Page
+  (setq w3m-default-display-inline-images t)
+  (setq w3m-default-toggle-inline-images t)
+  ;; W3M default display images
+  (setq w3m-command-arguments '("-cookie" "-F"))
+  (setq w3m-use-cookies t)
+  ;; W3M use cookies
+  (setq browse-url-browser-function 'w3m-browse-url)
+  ;; Browse url function use w3m
+  (setq w3m-view-this-url-new-session-in-background t)
+  ;; W3M view url new session in background
+  ;; )
 
   ;; mu4e
   ;; tell mu4e how to sync email
@@ -466,6 +579,12 @@ Captured: %t
   (with-eval-after-load 'mu4e-alert
     ;; Enable Desktop notifications
     (mu4e-alert-set-default-style 'notifier))   ; For Mac OSX (through the terminal notifier app)
+
+  ;; start agenda at startup
+  (org-agenda-list)
+  (switch-to-buffer "*Org Agenda*")
+  (spacemacs/toggle-maximize-buffer)
+
   )
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
@@ -474,9 +593,12 @@ Captured: %t
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(org-agenda-files
+   (quote
+    ("/Users/matus/Documents/ORG/notes-local.org" "/Users/matus/Documents/ORG/todo-local.org" "/Users/matus/Dropbox/ORG/HOME/HomeOrganizer.org" "/Users/matus/Dropbox/ORG/org-share/cheatsheet.org" "/Users/matus/Dropbox/ORG/org-share/cluster-usage.org" "/Users/matus/Dropbox/ORG/org-share/learning-plan.org" "/Users/matus/Dropbox/ORG/org-share/python-datascience-notes.org" "/Users/matus/Dropbox/ORG/Moje/Notes.org" "/Users/matus/Dropbox/ORG/Moje/costs.org" "/Users/matus/Dropbox/ORG/Moje/productivity.org")))
  '(package-selected-packages
    (quote
-    (ox-reveal helm-w3m w3m csv-mode web-mode tagedit slim-mode scss-mode sass-mode pug-mode less-css-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data auctex-latexmk mu4e-maildirs-extension mu4e-alert ht flyspell-popup xterm-color shell-pop org-ref pdf-tools key-chord ivy tablist multi-term helm-bibtex parsebib eshell-z eshell-prompt-extras esh-help biblio biblio-core company-auctex auctex yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode helm-pydoc cython-mode company-anaconda anaconda-mode pythonic smeargle orgit magit-gitflow helm-gitignore gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link evil-magit magit magit-popup git-commit with-editor reveal-in-osx-finder pbcopy osx-trash osx-dictionary launchctl org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-download htmlize helm-company helm-c-yasnippet gnuplot fuzzy flyspell-correct-helm flyspell-correct flycheck-pos-tip pos-tip flycheck company-statistics company auto-yasnippet yasnippet auto-dictionary ac-ispell auto-complete ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint info+ indent-guide hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation hide-comnt help-fns+ helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async org-plus-contrib evil-unimpaired f s dash))))
+    (julia-repl julia-mode flycheck-julia dockerfile-mode docker docker-tramp disaster company-c-headers cmake-mode clang-format slime-company slime common-lisp-snippets ranger mmm-mode markdown-toc markdown-mode gh-md web-beautify livid-mode json-mode json-snatcher json-reformat js2-refactor multiple-cursors js-doc company-tern dash-functional tern coffee-mode vimrc-mode dactyl-mode ein skewer-mode request-deferred websocket deferred js2-mode simple-httpd yaml-mode ox-reveal helm-w3m w3m csv-mode web-mode tagedit slim-mode scss-mode sass-mode pug-mode less-css-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data auctex-latexmk mu4e-maildirs-extension mu4e-alert ht flyspell-popup xterm-color shell-pop org-ref pdf-tools key-chord ivy tablist multi-term helm-bibtex parsebib eshell-z eshell-prompt-extras esh-help biblio biblio-core company-auctex auctex yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode helm-pydoc cython-mode company-anaconda anaconda-mode pythonic smeargle orgit magit-gitflow helm-gitignore gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link evil-magit magit magit-popup git-commit with-editor reveal-in-osx-finder pbcopy osx-trash osx-dictionary launchctl org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-download htmlize helm-company helm-c-yasnippet gnuplot fuzzy flyspell-correct-helm flyspell-correct flycheck-pos-tip pos-tip flycheck company-statistics company auto-yasnippet yasnippet auto-dictionary ac-ispell auto-complete ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint info+ indent-guide hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation hide-comnt help-fns+ helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async org-plus-contrib evil-unimpaired f s dash))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

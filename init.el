@@ -32,12 +32,14 @@ values."
    dotspacemacs-configuration-layers
    '(
      markdown
-     javascript
-     (julia :variables
-            julia-executable "/usr/local/bin/julia")
-     vimscript
+     ;; moom
+     ;; markdown
+     ;; javascript
+     ;; (julia :variables
+     ;;        julia-executable "/usr/local/bin/julia")
+     ;; vimscript
      yaml
-     csv
+     ;; csv
      (c-c++ :variables
             c-c++-default-mode-for-headers 'c++-mode
             c-c++-enable-clang-support t)
@@ -54,22 +56,26 @@ values."
                       auto-completion-tab-key-behavior 'cycle
                       auto-completion-complete-with-key-sequence nil
                       auto-completion-complete-with-key-sequence-delay 1
-                      auto-completion-private-snippets-directory nil)
+                      auto-completion-private-snippets-directory nil
+                      auto-completion-enable-snippets-in-popup t
+                      auto-completion-enable-help-tooltip t
+                      auto-completion-enable-sort-by-usage t
+                      )
      ;; better-defaults
-     bibtex
+     ;; bibtex
      common-lisp
-     emacs-lisp
+     ;; emacs-lisp
      git
      ;; markdown
      (latex :variables
             latex-enable-auto-fill t
             latex-enable-folding t
             )
-     (mu4e :variables
-           mu4e-enable-notifications t
-           mu4e-enable-mode-line t
-           mu4e-installation-path "/usr/local/Cellar/mu/0.9.18_1/share/emacs/site-lisp/mu/mu4e/"
-           )
+     ;; (mu4e :variables
+     ;;       mu4e-enable-notifications t
+     ;;       mu4e-enable-mode-line t
+     ;;       mu4e-installation-path "/usr/local/Cellar/mu/0.9.18_1/share/emacs/site-lisp/mu/mu4e/"
+     ;;       )
      (org :variables
           org-enable-reveal-js-support t
           )
@@ -79,6 +85,7 @@ values."
             shell-default-position 'right
             shell-default-full-span nil
             )
+     slack
      (python :variables
              python-enable-yapf-format-on-save t
              python-fill-column 88
@@ -92,8 +99,14 @@ values."
      syntax-checking
      (osx  :variables
            mac-right-option-modifier nil)
-     w3m
+     ;; w3m
      ;; version-control
+     ;; themes-megapack
+     ;; dash ;; http://spacemacs.org/layers/+tools/dash/README.html
+     evil-commentary ;; http://spacemacs.org/layers/+vim/evil-commentary/README.html
+     vim-powerline
+     ;; evernote ;; http://spacemacs.org/layers/+web-services/evernote/README.html
+     xkcd ;; http://spacemacs.org/layers/+fun/xkcd/README.html
      )
    ;; List of additional packages that will be installed without being
    ;; wrapped in a layer. If you need some configuration for these
@@ -103,7 +116,11 @@ values."
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
    ;; A list of packages that will not be installed and loaded.
-   dotspacemacs-excluded-packages '()
+   dotspacemacs-excluded-packages
+   '(
+     ;; disabled so that global auto complete can be enabled
+     ;; company
+     )
    ;; Defines the behaviour of Spacemacs when installing packages.
    ;; A list of packages that will not be installed and loaded.
    ;; Possible values are `used-only', `used-but-keep-unused' and `all'.
@@ -346,8 +363,9 @@ executes.
  This function is mostly useful for variables that need to be set
 before packages are loaded. If you are unsure, you should try in setting them in
 `dotspacemacs/user-config' first."
-  (setenv "WORKON_HOME" "~/anaconda3/envs")
+  (setenv "WORKON_HOME" "~/miniconda3/envs")
   ;;(shell-command "source ~/.bash_profile")
+  ;; (setq inferior-lisp-program "/usr/local/bin/sbcl")
   )
 
 
@@ -361,12 +379,60 @@ you should place your code here."
 
   ;; custom keys
   (spacemacs/set-leader-keys "=" 'calculator)
+  (global-set-key (kbd "s-<return>") 'toggle-frame-fullscreen) ;; cmd-enter
+  (spacemacs/set-leader-keys "o" 'occur)
+
+  ;;; slack
+  ;; load credentials for slack
+  (load-library "~/.emacs.d/private/slack-auth.el.gpg")
+  ;; key bindings
+  (evil-define-key 'normal slack-mode-map
+    ",ra" 'slack-message-add-reaction
+    ",rr" 'slack-message-remove-reaction
+    ",rs" 'slack-message-show-reaction-users
+    ",pl" 'slack-room-pins-list
+    ",pa" 'slack-message-pins-add
+    ",pr" 'slack-message-pins-remove
+    ",mm" 'slack-message-write-another-buffer
+    ",me" 'slack-message-edit
+    ",md" 'slack-message-delete
+    ",jc" 'slack-channel-select
+    ",jd" 'slack-im-select
+    ",2" 'slack-message-embed-mention
+    ",3" 'slack-message-embed-channel
+    "\C-n" 'slack-buffer-goto-next-message
+    "\C-p" 'slack-buffer-goto-prev-message)
+  (evil-define-key 'normal slack-edit-message-mode-map
+    ",k" 'slack-message-cancel-edit
+    ",s" 'slack-message-send-from-buffer
+    ",2" 'slack-message-embed-mention
+    ",3" 'slack-message-embed-channel)
+
+  ;; windmove fast buffer switching
+  (global-set-key (kbd "s-<up>") 'windmove-up)
+  (global-set-key (kbd "s-<down>") 'windmove-down)
+  (global-set-key (kbd "s-<right>") 'windmove-right)
+  (global-set-key (kbd "s-<left>") 'windmove-left)
+
+  ;; kill shell bufer after exit
+  (defun ansi-term-handle-close ()
+    "Close current term buffer when `exit' from term buffer."
+    (when (ignore-errors (get-buffer-process (current-buffer)))
+      (set-process-sentinel (get-buffer-process (current-buffer))
+                            (lambda (proc change)
+                              (when (string-match "\\(finished\\|exit\\)" change)
+                                (kill-buffer (process-buffer proc))
+                                (delete-window))))))
+  (add-hook 'shell-mode-hook 'ansi-term-handle-close)
 
   ;; make calculator insert the result upot hitting C-Enter
   (defadvice calculator-save-and-quit (after yank-answer activate) (yank))
 
   ;; system
   (add-to-list 'exec-path "/usr/local/bin")
+
+  ;; global auto-completion
+  (global-company-mode)
 
   ;; auto-fill by default for a specific mode
   (add-hook 'org-mode-hook 'turn-on-auto-fill)
@@ -417,8 +483,22 @@ you should place your code here."
   (setq org-todo-keywords (quote ((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")
                                   (sequence "KAUFEN(k)" "|" "GEKAUFT(K@!)")
                                   (sequence "APPLY(a)" "WAITING(w@/!)" "OFFER(o@!)" "|" "REJECTION(r@!)")
-                                  (sequence   "|" "CANCELED(c@)" ))))
+                                  (sequence "SOMEDAY(s)"  "|" "CANCELED(c@)" ))))
 
+  ;; Set custom colors for ToDo states
+  (setq org-todo-keyword-faces
+        '(("TODO" . (:foreground "GoldenRod" :weight bold))
+          ("NEXT" . (:foreground "OrangeRed" :weight bold))
+          ("DONE" . (:foreground "#618685" :weight bold))
+          ("WAITING" . (:foreground "coral" :weight bold))
+          ("CANCELED" . (:foreground "LimeGreen" :weight bold))
+          ("SOMEDAY" . (:foreground "LimeGreen" :weight bold))
+          ))
+
+  ;; (add-to-list 'org-emphasis-alist
+  ;;              '("*" (:foreground "#FF6347" :weight bold)
+  ;;                ))
+  
   (setq org-capture-templates
         '(("t" "ToDo" entry (file+headline "/Users/matus/Dropbox/ORG/Moje/agenda.org" "INBOX")
            "* TODO %?\n  %i\n  %a")
@@ -459,8 +539,8 @@ you should place your code here."
           ("s" "New Snippet" entry (file+headline "/Users/matus/Dropbox/ORG/org-share/learning-plan.org" "Snippets")
            "* %^{Title}\n** Description\n%?\n** Code\n#+BEGIN_SRC %^{Language}\n\n#+END_SRC\n" :prepend t)
 
-          ("m" "Meeting" entry (file+headline "/Users/matus/Dropbox/ORG/Moje/Notes.org" "ToDo")
-           "* TODO Meeting with %? :meeting:%^G\nSCHEDULED: %^T")
+          ("l" "Add to LINKS" entry (file+headline "/Users/matus/Dropbox/ORG/org-share/links.org" "refile")
+           "* %?\n- [[%^{Link}][%^{Description}]]\n")
 
           ("p" "Phone call" entry (file+headline "/Users/matus/Dropbox/ORG/Moje/Notes.org" "Phone calls")
            "* %? :phone:
@@ -473,7 +553,7 @@ you should place your code here."
 *NOTE:* ")
           ))
 
-  ; Tags with fast selection keys
+  ;; Tags with fast selection keys
   (setq org-tag-alist (quote ((:startgroup)
                               ("@home" . ?H)
                               ("@office" . ?O)
@@ -499,92 +579,92 @@ you should place your code here."
 
   ;; w3m for web browsing
   ;; (defun dotspacemacs/user-config ()
-  (setq w3m-home-page "https://www.google.com")
-  ;; W3M Home Page
-  (setq w3m-default-display-inline-images t)
-  (setq w3m-default-toggle-inline-images t)
-  ;; W3M default display images
-  (setq w3m-command-arguments '("-cookie" "-F"))
-  (setq w3m-use-cookies t)
-  ;; W3M use cookies
-  (setq browse-url-browser-function 'w3m-browse-url)
-  ;; Browse url function use w3m
-  (setq w3m-view-this-url-new-session-in-background t)
+  ;; (setq w3m-home-page "https://www.google.com")
+  ;; ;; W3M Home Page
+  ;; (setq w3m-default-display-inline-images t)
+  ;; (setq w3m-default-toggle-inline-images t)
+  ;; ;; W3M default display images
+  ;; (setq w3m-command-arguments '("-cookie" "-F"))
+  ;; (setq w3m-use-cookies t)
+  ;; ;; W3M use cookies
+  ;; (setq browse-url-browser-function 'w3m-browse-url)
+  ;; ;; Browse url function use w3m
+  ;; (setq w3m-view-this-url-new-session-in-background t)
   ;; W3M view url new session in background
   ;; )
 
   ;; mu4e
   ;; tell mu4e how to sync email
-  (setq mu4e-get-mail-command "mbsync -a"
-        mu4e-attachment-dir  "~/Downloads"
-        mu4e-update-interval 120
-        mu4e-compose-signature-auto-include nil
-        mu4e-view-show-images t
-        mu4e-view-image-max-width 800
-        mu4e-view-show-addresses t
-        mu4e-compose-dont-reply-to-self t
-        mu4e-html2text-command "w3m -dump -T text/html"
-        mu4e-sent-messages-behavior 'delete
-        mu4e-compose-dont-reply-to-self t
-        mu4e-index-cleanup nil      ;; don't do a full cleanup check
-        mu4e-index-lazy-check t)    ;; don't consider up-to-date dirs
+  ;; (setq mu4e-get-mail-command "mbsync -a"
+  ;;       mu4e-attachment-dir  "~/Downloads"
+  ;;       mu4e-update-interval 120
+  ;;       mu4e-compose-signature-auto-include nil
+  ;;       mu4e-view-show-images t
+  ;;       mu4e-view-image-max-width 800
+  ;;       mu4e-view-show-addresses t
+  ;;       mu4e-compose-dont-reply-to-self t
+  ;;       mu4e-html2text-command "w3m -dump -T text/html"
+  ;;       mu4e-sent-messages-behavior 'delete
+  ;;       mu4e-compose-dont-reply-to-self t
+  ;;       mu4e-index-cleanup nil      ;; don't do a full cleanup check
+  ;;       mu4e-index-lazy-check t)    ;; don't consider up-to-date dirs
 
   ;; Use imagemagick, if available.
   (when (fboundp 'imagemagick-register-types)
     (imagemagick-register-types))
 
   ;; behavior while composing
-  (add-hook 'mu4e-compose-mode-hook
-            (defun my-do-compose-stuff ()
-            "My settings for message composition."
-            (set-fill-column 72)
-            (flyspell-mode)))
+  ;; (add-hook 'mu4e-compose-mode-hook
+  ;;           (defun my-do-compose-stuff ()
+  ;;           "My settings for message composition."
+  ;;           (set-fill-column 72)
+  ;;           (flyspell-mode)))
 
-  ;; add cc header
-  (add-hook 'mu4e-compose-mode-hook
-            (defun my-add-cc ()
-              "Add a cc-header"
-              (save-excursion (message-add-header "Cc: \n"))))
+  ;; ;; add cc header
+  ;; (add-hook 'mu4e-compose-mode-hook
+  ;;           (defun my-add-cc ()
+  ;;             "Add a cc-header"
+  ;;             (save-excursion (message-add-header "Cc: \n"))))
 
-  ;; Iso-date format
-  (setq mu4e-headers-date-format "%d.%m.%Y %H:%M")
+  ;; ;; Iso-date format
+  ;; (setq mu4e-headers-date-format "%d.%m.%Y %H:%M")
 
-  ;; header fields
-  (setq mu4e-headers-fields
-        '( (:date . 20)
-           (:flags . 6)
-           (:from . 50)
-           (:subject . nil)))
+  ;; ;; header fields
+  ;; (setq mu4e-headers-fields
+  ;;       '( (:date . 20)
+  ;;          (:flags . 6)
+  ;;          (:from . 50)
+  ;;          (:subject . nil)))
 
-  (setq
-   mu4e-maildir       "~/.maildir/gmail"   ;; top-level Maildir
-   mu4e-sent-folder   "/.Sent Mail"       ;; folder for sent messages
-   mu4e-drafts-folder "/.Drafts"     ;; unfinished messages
-   mu4e-trash-folder  "/.Trash")      ;; trashed messages
+  ;; (setq
+  ;;  mu4e-maildir       "~/.maildir/gmail"   ;; top-level Maildir
+  ;;  mu4e-sent-folder   "/.Sent Mail"       ;; folder for sent messages
+  ;;  mu4e-drafts-folder "/.Drafts"     ;; unfinished messages
+  ;;  mu4e-trash-folder  "/.Trash")      ;; trashed messages
 
-  ;;; Mail directory shortcuts
-  (setq mu4e-maildir-shortcuts
-        '(("/inbox" . ?i)
-          ("/.Sent Mail" . ?s)
-          ("/.Trash" . ?t)
-          ("/.Drafts" . ?d)))
+  ;; ;;; Mail directory shortcuts
+  ;; (setq mu4e-maildir-shortcuts
+  ;;       '(("/inbox" . ?i)
+  ;;         ("/.Sent Mail" . ?s)
+  ;;         ("/.Trash" . ?t)
+  ;;         ("/.Drafts" . ?d)))
 
-  ;;; msmtp
-  (setq message-send-mail-function 'message-send-mail-with-sendmail
-        sendmail-program "msmtp"
-        message-sendmail-extra-arguments '("--read-envelope-from")
-        message-sendmail-f-is-evil 't
-        message-sendmail-extra-arguments '("-C" "/Users/matus/.spacemacs.d/msmtprc" "-a" "gmail"))
+  ;; ;;; msmtp
+  ;; (setq message-send-mail-function 'message-send-mail-with-sendmail
+  ;;       sendmail-program "msmtp"
+  ;;       message-sendmail-extra-arguments '("--read-envelope-from")
+  ;;       message-sendmail-f-is-evil 't
+  ;;       message-sendmail-extra-arguments '("-C" "/Users/matus/.spacemacs.d/msmtprc" "-a" "gmail"))
 
-  (with-eval-after-load 'mu4e-alert
-    ;; Enable Desktop notifications
-    (mu4e-alert-set-default-style 'notifier))   ; For Mac OSX (through the terminal notifier app)
+  ;; (with-eval-after-load 'mu4e-alert
+  ;;   ;; Enable Desktop notifications
+  ;;   (mu4e-alert-set-default-style 'notifier))   ; For Mac OSX (through the terminal notifier app)
 
   ;; start agenda at startup
   (org-agenda-list)
   (switch-to-buffer "*Org Agenda*")
   (spacemacs/toggle-maximize-buffer)
-
+  (server-start)
   )
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
@@ -593,15 +673,56 @@ you should place your code here."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(anzu-cons-mode-line-p nil)
+ '(anzu-mode-line-update-function (quote spacemacs/anzu-update-mode-line))
+ '(global-hl-line-mode t)
+ '(global-page-break-lines-mode t)
+ '(helm-display-header-line nil)
+ '(helm-echo-input-in-header-line t)
  '(org-agenda-files
    (quote
     ("/Users/matus/Documents/ORG/notes-local.org" "/Users/matus/Documents/ORG/todo-local.org" "/Users/matus/Dropbox/ORG/HOME/HomeOrganizer.org" "/Users/matus/Dropbox/ORG/org-share/cheatsheet.org" "/Users/matus/Dropbox/ORG/org-share/cluster-usage.org" "/Users/matus/Dropbox/ORG/org-share/learning-plan.org" "/Users/matus/Dropbox/ORG/org-share/python-datascience-notes.org" "/Users/matus/Dropbox/ORG/Moje/Notes.org" "/Users/matus/Dropbox/ORG/Moje/costs.org" "/Users/matus/Dropbox/ORG/Moje/productivity.org")))
+ '(org-emphasis-alist
+   (quote
+    (("*" bold)
+     ("/"
+      (nil red))
+     ("_" underline)
+     ("=" org-verbatim verbatim)
+     ("~" org-code verbatim)
+     ("+"
+      (:strike-through t)))))
+ '(org-fontify-done-headline t)
+ '(org-hide-emphasis-markers t)
+ '(org-hide-leading-stars t)
+ '(org-startup-with-inline-images t)
  '(package-selected-packages
    (quote
-    (julia-repl julia-mode flycheck-julia dockerfile-mode docker docker-tramp disaster company-c-headers cmake-mode clang-format slime-company slime common-lisp-snippets ranger mmm-mode markdown-toc markdown-mode gh-md web-beautify livid-mode json-mode json-snatcher json-reformat js2-refactor multiple-cursors js-doc company-tern dash-functional tern coffee-mode vimrc-mode dactyl-mode ein skewer-mode request-deferred websocket deferred js2-mode simple-httpd yaml-mode ox-reveal helm-w3m w3m csv-mode web-mode tagedit slim-mode scss-mode sass-mode pug-mode less-css-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data auctex-latexmk mu4e-maildirs-extension mu4e-alert ht flyspell-popup xterm-color shell-pop org-ref pdf-tools key-chord ivy tablist multi-term helm-bibtex parsebib eshell-z eshell-prompt-extras esh-help biblio biblio-core company-auctex auctex yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode helm-pydoc cython-mode company-anaconda anaconda-mode pythonic smeargle orgit magit-gitflow helm-gitignore gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link evil-magit magit magit-popup git-commit with-editor reveal-in-osx-finder pbcopy osx-trash osx-dictionary launchctl org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-download htmlize helm-company helm-c-yasnippet gnuplot fuzzy flyspell-correct-helm flyspell-correct flycheck-pos-tip pos-tip flycheck company-statistics company auto-yasnippet yasnippet auto-dictionary ac-ispell auto-complete ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint info+ indent-guide hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation hide-comnt help-fns+ helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async org-plus-contrib evil-unimpaired f s dash))))
+    (slack emojify circe oauth2 company-quickhelp xkcd evil-commentary focus orgit org-present moom org-mime julia-repl julia-mode flycheck-julia dockerfile-mode docker docker-tramp disaster company-c-headers cmake-mode clang-format slime-company slime common-lisp-snippets ranger mmm-mode markdown-toc markdown-mode gh-md web-beautify livid-mode json-mode json-snatcher json-reformat js2-refactor multiple-cursors js-doc company-tern dash-functional tern coffee-mode vimrc-mode dactyl-mode ein skewer-mode request-deferred websocket deferred js2-mode simple-httpd yaml-mode ox-reveal helm-w3m w3m csv-mode web-mode tagedit slim-mode scss-mode sass-mode pug-mode less-css-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data auctex-latexmk mu4e-maildirs-extension mu4e-alert ht flyspell-popup xterm-color shell-pop org-ref pdf-tools key-chord ivy tablist multi-term helm-bibtex parsebib eshell-z eshell-prompt-extras esh-help biblio biblio-core company-auctex auctex yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode helm-pydoc cython-mode company-anaconda anaconda-mode pythonic smeargle magit-gitflow helm-gitignore gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link evil-magit magit magit-popup git-commit with-editor reveal-in-osx-finder pbcopy osx-trash osx-dictionary launchctl org-projectile org-pomodoro alert log4e gntp org-download htmlize helm-company helm-c-yasnippet gnuplot fuzzy flyspell-correct-helm flyspell-correct flycheck-pos-tip pos-tip flycheck company-statistics company auto-yasnippet yasnippet auto-dictionary ac-ispell auto-complete ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint info+ indent-guide hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation hide-comnt help-fns+ helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async evil-unimpaired f s dash)))
+ '(paradox-github-token t)
+ '(spaceline-helm-mode t)
+ '(spaceline-info-mode t)
+ '(winum-auto-setup-mode-line nil)
+ '(x-underline-at-descent-line t))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- )
+ '(bold ((t (:foreground "dark khaki" :weight bold))))
+ '(hl-line ((t (:background "#212026"))))
+ '(org-block ((t (:background "gray8" :foreground "#cbc1d5"))))
+ '(org-block-begin-line ((t (:background "gray30" :foreground "gray65"))))
+ '(org-block-end-line ((t (:background "gray30" :foreground "gray65"))))
+ '(org-date ((t (:foreground "#878f99"))))
+ '(org-default ((t (:inherit default))))
+ '(org-headline-done ((t (:foreground "gray40"))))
+ '(org-level-1 ((t (:inherit bold :foreground "gray100" :height 1.2))))
+ '(org-level-2 ((t (:inherit bold :foreground "#70CFF5" :height 1.2))))
+ '(org-level-3 ((t (:foreground "#30B4E8" :weight normal :height 1.1))))
+ '(org-level-4 ((t (:foreground "#1186B0" :weight normal))))
+ '(org-level-5 ((t (:foreground "#3764B9" :weight normal))))
+ '(org-level-8 ((t (:foreground "gray100" :weight bold))))
+ '(org-link ((t (:foreground "dark cyan"))))
+ '(org-table ((t (:inherit default :background "gray100" :foreground "gray40"))))
+ '(org-verbatim ((t (:foreground "#FF6347" :weight semi-bold)))))

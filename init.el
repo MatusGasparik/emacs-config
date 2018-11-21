@@ -31,6 +31,9 @@ values."
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
    '(
+     ;; private layers
+     my-conf
+     ;; protobuf
      markdown
      ;; moom
      ;; markdown
@@ -40,6 +43,7 @@ values."
      ;; vimscript
      yaml
      ;; csv
+     clojure
      (c-c++ :variables
             c-c++-default-mode-for-headers 'c++-mode
             c-c++-enable-clang-support t)
@@ -62,20 +66,25 @@ values."
                       auto-completion-enable-sort-by-usage t
                       )
      ;; better-defaults
-     ;; bibtex
+     bibtex
+     pdf-tools
      common-lisp
      ;; emacs-lisp
      git
+     (go :variables
+         gofmt-command "goimports"
+         go-tab-width 4
+         go-use-gometalinter t)
      ;; markdown
      (latex :variables
             latex-enable-auto-fill t
             latex-enable-folding t
             )
-     ;; (mu4e :variables
-     ;;       mu4e-enable-notifications t
-     ;;       mu4e-enable-mode-line t
-     ;;       mu4e-installation-path "/usr/local/Cellar/mu/0.9.18_1/share/emacs/site-lisp/mu/mu4e/"
-     ;;       )
+     (mu4e :variables
+           mu4e-enable-notifications t
+           mu4e-enable-mode-line t
+           mu4e-installation-path "/usr/local/Cellar/mu/0.9.18_1/share/emacs/site-lisp/mu/mu4e/"
+           )
      (org :variables
           org-enable-reveal-js-support t
           )
@@ -99,7 +108,7 @@ values."
      syntax-checking
      (osx  :variables
            mac-right-option-modifier nil)
-     ;; w3m
+     w3m
      ;; version-control
      ;; themes-megapack
      ;; dash ;; http://spacemacs.org/layers/+tools/dash/README.html
@@ -112,7 +121,9 @@ values."
    ;; wrapped in a layer. If you need some configuration for these
    ;; packages, then consider creating a layer. You can also put the
    ;; configuration in `dotspacemacs/user-config'.
-   dotspacemacs-additional-packages '()
+   dotspacemacs-additional-packages '(
+                                      auctex-latexmk
+                                      )
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
    ;; A list of packages that will not be installed and loaded.
@@ -343,7 +354,7 @@ values."
    ;; List of search tool executable names. Spacemacs uses the first installed
    ;; tool of the list. Supported tools are `ag', `pt', `ack' and `grep'.
    ;; (default '("ag" "pt" "ack" "grep"))
-   dotspacemacs-search-tools '("ag" "pt" "ack" "grep")
+   dotspacemacs-search-tools '("ag" "ack" "grep")
    ;; The default package repository used if no explicit repository has been
    ;; specified with an installed package.
    ;; Not used for now. (default nil)
@@ -376,6 +387,8 @@ layers configuration.
 This is the place where most of your configurations should be done. Unless it is
 explicitly specified that a variable should be set before a package is loaded,
 you should place your code here."
+
+  (display-time-mode 1)
 
   ;; custom keys
   (spacemacs/set-leader-keys "=" 'calculator)
@@ -432,13 +445,14 @@ you should place your code here."
   (add-to-list 'exec-path "/usr/local/bin")
 
   ;; global auto-completion
-  (global-company-mode)
+  ;; (global-company-mode)
 
   ;; auto-fill by default for a specific mode
   (add-hook 'org-mode-hook 'turn-on-auto-fill)
+  ;; (add-hook 'org-mode-hook (lambda () (setq fill-column 100)))
 
   ;; auto-fill for all major modes
-  ;; (setq-default auto-fill-function 'do-auto-fill)
+  (setq-default auto-fill-function 'do-auto-fill)
 
   ;; User
   (setq user-mail-address "matus.gasparik@gmail.com"
@@ -448,23 +462,29 @@ you should place your code here."
   (add-hook 'doc-view-mode-hook 'auto-revert-mode)
 
   ;; org-mode
+  ;; make yas work well with org-mode
+  (add-hook 'org-mode-hook
+            (lambda ()
+              (setq company-backends '((company-yasnippet company-dabbrev)))))
+
   (org-babel-do-load-languages
    'org-babel-load-languages
    '((dot    . t)
      (shell  . t)
+     (C      . t)
      (python . t)
      (lisp   . t)
      (sqlite . t)
      (latex  . t)
      ))
 
+
   ;; make latex preview fragments larger
   (setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
 
-  (setq org-agenda-files (list "/Users/matus/Documents/ORG"
-                               "/Users/matus/_projects/isendi/ORG"
-                               "/Users/matus/Dropbox/ORG/HOME"
+  (setq org-agenda-files (list "/Users/matus/Dropbox/ORG/HOME"
                                "/Users/matus/Dropbox/ORG/org-share"
+                               "/Users/matus/Dropbox/ORG/org-share/ML-DL"
                                "/Users/matus/Dropbox/ORG/Moje")
         org-default-notes-file "/Users/matus/Dropbox/ORG/Moje/agenda.org"
         org-startup-indented t
@@ -507,42 +527,32 @@ you should place your code here."
            "* TODO %? \nSCHEDULED:%^T\n")
 
           ("K" "EINKAUFEN" entry (file+headline "/Users/matus/Dropbox/ORG/HOME/HomeOrganizer.org" "EINKÄUFE")
-           "* KAUFEN [/] Summe: € \n+ %?")
+           "* KAUFEN [/]\n- [ ] %?")
 
-          ("r" "Respond" entry (file+headline "/Users/matus/Documents/ORG/todo-local.org" "Tasks")
+          ("r" "Respond" entry (file+headline "/Users/matus/Dropbox/ORG/Moje/agenda.org" "INBOX")
            "* NEXT Reply to %:from on %:subject :email:\nSCHEDULED: <%(org-read-date nil nil \"+1d\")>\n%U\n%a\n" :immediate-finish t)
 
-;;           ("H" "Job Hunt" entry (file+headline "/Users/matus/Documents/ORG/todo.org" "JOB")
-;;            "* APPLY at %^{Company/Institution name} :job:
-;; :PROPERTIES:
-;; :DESCRIPTION: %^{Description}p
-;; :LOCATION: %^{Location}
-;; :OPEN-POSSITION: %^{Open positions?|y|n|?}
-;; :URL: %^{url}
-;; :CONTACT: %^{Contact person}
-;; :APPLIED:
-;; :END:
+          ("H" "Job Hunt" entry (file+headline
+           "/Users/matus/Dropbox/ORG/Moje/jobs.org" "JOB HUNT")
+           "* APPLY at %^{Company/Institution name} :job:
+:PROPERTIES:
+:DESCRIPTION: %^{Description}p
+:LOCATION: %^{Location}
+:OPEN-POSSITION: %^{Open positions?|y|n|?}
+:URL: %^{url}
+:CONTACT: %^{Contact person}
+:APPLIED:
+:END:
 
-;; %t
+%t
 
-;; *NOTES*\n%?")
+*NOTES*\n%?")
 
-          ("n" "Note" entry (file "/Users/matus/Dropbox/ORG/Moje/Notes.org")
-           "* %^{Title} \n %?")
-
-          ("j" "Journal" entry (file+datetree "/Users/matus/Dropbox/ORG/Moje/Journal.org.gpg")
-           "* %?\n%U\n")
-
-          ("e" "Inbox message on org-share" entry (file+headline "/Users/matus/Dropbox/ORG/org-share/learning-plan.org" "INBOX")
-           "* NEW %U -> Josephus :: %^{Subject}\n%?\n%a\n" :prepend t)
-
-          ("s" "New Snippet" entry (file+headline "/Users/matus/Dropbox/ORG/org-share/learning-plan.org" "Snippets")
-           "* %^{Title}\n** Description\n%?\n** Code\n#+BEGIN_SRC %^{Language}\n\n#+END_SRC\n" :prepend t)
 
           ("l" "Add to LINKS" entry (file+headline "/Users/matus/Dropbox/ORG/org-share/links.org" "refile")
            "* %?\n- [[%^{Link}][%^{Description}]]\n")
 
-          ("p" "Phone call" entry (file+headline "/Users/matus/Dropbox/ORG/Moje/Notes.org" "Phone calls")
+          ("p" "Phone call" entry (file+headline "/Users/matus/Dropbox/ORG/Moje/jobs.org" "Phone calls")
            "* %? :phone:
 :PROPERTIES:
 :CONTACT-PERSON: %^{Contact person}
@@ -553,117 +563,162 @@ you should place your code here."
 *NOTE:* ")
           ))
 
+  ;; Custom SRC block templates
+  (add-to-list 'org-structure-template-alist
+               '("cpp" "#+BEGIN_SRC C++ :results output verbatim\n?\n#+END_SRC\n" "<src lang=\"?\">\n\n</src>"))
+  (add-to-list 'org-structure-template-alist
+               '("c" "#+BEGIN_SRC C :results output verbatim\n?\n#+END_SRC\n" "<src lang=\"?\">\n\n</src>"))
+  (add-to-list 'org-structure-template-alist
+              '("py" "#+BEGIN_SRC python :results output\n?\n#+END_SRC\n" "<src lang=\"?\">\n\n</src>"))
+  (add-to-list 'org-structure-template-alist
+               '("sh" "#+BEGIN_SRC bash :results output\n?\n#+END_SRC\n" "<src lang=\"?\">\n\n</src>"))
+  (add-to-list 'org-structure-template-alist
+               '("m" "\\begin{equation}\n?\n\\end{equation}"))
+  (add-to-list 'org-structure-template-alist
+               '("mu" "\\begin{*equation}\n?\n\\end{*equation}"))
+  (add-to-list 'org-structure-template-alist
+               '("mi" "\\( \? \\)"))
+
   ;; Tags with fast selection keys
-  (setq org-tag-alist (quote ((:startgroup)
+  (setq org-tag-alist (quote (("read" . ?r)
+                              ("code" . ?c)
+                              ("phone" . ?p)
+                              ("personal" . ?m)
+                              (:startgroup)
                               ("@home" . ?H)
                               ("@office" . ?O)
                               ("@city" . ?C)
                               (:endgroup)
-                              ("phone" . ?t)
-                              ("email" . ?e)
-                              ("personal" . ?p)
-                              ("code" . ?c)
-                              ("job" . ?j)
-                              ("meeting" . ?m)
-                              ("family" . ?f)
-                              ("note" . ?n)
+                              ;; ("phone" . ?t)
+                              ;; ("email" . ?e)
+                              ;; ("personal" . ?p)
+                              ;; ("code" . ?c)
+                              ;; ("job" . ?j)
+                              ;; ("meeting" . ?m)
+                              ;; ("family" . ?f)
+                              ;; ("note" . ?n)
                               )))
 
   ;; BibTeX
+  (setq reftex-default-bibliography '("/Users/matus/Dropbox/ORG/org-share/BibTeX_files/Matus/library.bib"))
   (setq org-ref-default-bibliography '("/Users/matus/Dropbox/ORG/org-share/BibTeX_files/Matus/library.bib")
+        org-ref-bibliography-notes "/Users/matus/Dropbox/ORG/org-share/BibTeX_files/Matus/references.org"
         org-ref-pdf-directory "/Users/matus/Dropbox/ORG/org-share/BibTeX_files/Matus/PDFs"
         bibtex-completion-pdf-field "file"
-        helm-bibtex-bibliography '("/Users/matus/Dropbox/ORG/org-share/BibTeX_files/Matus/library.bib")
-        helm-bibtex-library-path '("/Users/matus/Dropbox/ORG/org-share/BibTeX_files/Matus/PDFs")
+        bibtex-completion-bibliography "/Users/matus/Dropbox/ORG/org-share/BibTeX_files/Matus/library.bib"
+        bibtex-completion-library-path "/Users/matus/Dropbox/ORG/org-share/BibTeX_files/Matus/PDFs"
+        ;; helm-bibtex-bibliography '("/Users/matus/Dropbox/ORG/org-share/BibTeX_files/Matus/library.bib")
+        ;; helm-bibtex-library-path '("/Users/matus/Dropbox/ORG/org-share/BibTeX_files/Matus/PDFs")
         )
 
   ;; w3m for web browsing
-  ;; (defun dotspacemacs/user-config ()
-  ;; (setq w3m-home-page "https://www.google.com")
-  ;; ;; W3M Home Page
-  ;; (setq w3m-default-display-inline-images t)
-  ;; (setq w3m-default-toggle-inline-images t)
-  ;; ;; W3M default display images
-  ;; (setq w3m-command-arguments '("-cookie" "-F"))
-  ;; (setq w3m-use-cookies t)
-  ;; ;; W3M use cookies
-  ;; (setq browse-url-browser-function 'w3m-browse-url)
-  ;; ;; Browse url function use w3m
-  ;; (setq w3m-view-this-url-new-session-in-background t)
-  ;; W3M view url new session in background
-  ;; )
+  (defun dotspacemacs/user-config ()
+  (setq w3m-home-page "https://www.google.com")
+  ;; W3M Home Page
+  (setq w3m-default-display-inline-images t)
+  (setq w3m-default-toggle-inline-images t)
+  ;; W3M default display images
+  (setq w3m-command-arguments '("-cookie" "-F"))
+  (setq w3m-use-cookies t)
+  ;; W3M use cookies
+  (setq browse-url-browser-function 'w3m-browse-url)
+  ;; Browse url function use w3m
+  (setq w3m-view-this-url-new-session-in-background t)
+  W3M view url new session in background
+  )
 
   ;; mu4e
   ;; tell mu4e how to sync email
-  ;; (setq mu4e-get-mail-command "mbsync -a"
-  ;;       mu4e-attachment-dir  "~/Downloads"
-  ;;       mu4e-update-interval 120
-  ;;       mu4e-compose-signature-auto-include nil
-  ;;       mu4e-view-show-images t
-  ;;       mu4e-view-image-max-width 800
-  ;;       mu4e-view-show-addresses t
-  ;;       mu4e-compose-dont-reply-to-self t
-  ;;       mu4e-html2text-command "w3m -dump -T text/html"
-  ;;       mu4e-sent-messages-behavior 'delete
-  ;;       mu4e-compose-dont-reply-to-self t
-  ;;       mu4e-index-cleanup nil      ;; don't do a full cleanup check
-  ;;       mu4e-index-lazy-check t)    ;; don't consider up-to-date dirs
+  (setq mu4e-get-mail-command "mbsync -a"
+        mu4e-attachment-dir  "~/Downloads"
+        mu4e-update-interval 120
+        mu4e-compose-signature-auto-include nil
+        mu4e-compose-complete-addresses t
+        mu4e-view-show-images t
+        mu4e-view-image-max-width 800
+        mu4e-view-show-addresses t
+        mu4e-compose-dont-reply-to-self t
+        mu4e-html2text-command "w3m -dump -T text/html"
+        mu4e-sent-messages-behavior 'delete
+        mu4e-compose-dont-reply-to-self t
+        mu4e-index-cleanup nil      ;; don't do a full cleanup check
+        mu4e-index-lazy-check t ;; don't consider up-to-date dirs
+        org-mu4e-link-query-in-headers-mode t) ;; link to the query in headers view
 
   ;; Use imagemagick, if available.
   (when (fboundp 'imagemagick-register-types)
     (imagemagick-register-types))
 
   ;; behavior while composing
-  ;; (add-hook 'mu4e-compose-mode-hook
-  ;;           (defun my-do-compose-stuff ()
-  ;;           "My settings for message composition."
-  ;;           (set-fill-column 72)
-  ;;           (flyspell-mode)))
+  (add-hook 'mu4e-compose-mode-hook
+            (defun my-do-compose-stuff ()
+            "My settings for message composition."
+            (set-fill-column 72)
+            (flyspell-mode)))
 
-  ;; ;; add cc header
-  ;; (add-hook 'mu4e-compose-mode-hook
-  ;;           (defun my-add-cc ()
-  ;;             "Add a cc-header"
-  ;;             (save-excursion (message-add-header "Cc: \n"))))
+  ;; add cc header
+  (add-hook 'mu4e-compose-mode-hook
+            (defun my-add-cc ()
+              "Add a cc-header"
+              (save-excursion (message-add-header "Cc: \n"))))
 
-  ;; ;; Iso-date format
-  ;; (setq mu4e-headers-date-format "%d.%m.%Y %H:%M")
+  ;; Iso-date format
+  (setq mu4e-headers-date-format "%d.%m.%Y %H:%M")
 
-  ;; ;; header fields
-  ;; (setq mu4e-headers-fields
-  ;;       '( (:date . 20)
-  ;;          (:flags . 6)
-  ;;          (:from . 50)
-  ;;          (:subject . nil)))
+  ;; header fields
+  (setq mu4e-headers-fields
+        '( (:date . 20)
+           (:flags . 6)
+           (:from . 50)
+           (:subject . nil)))
 
-  ;; (setq
-  ;;  mu4e-maildir       "~/.maildir/gmail"   ;; top-level Maildir
-  ;;  mu4e-sent-folder   "/.Sent Mail"       ;; folder for sent messages
-  ;;  mu4e-drafts-folder "/.Drafts"     ;; unfinished messages
-  ;;  mu4e-trash-folder  "/.Trash")      ;; trashed messages
+  (setq
+   mu4e-maildir       "~/.maildir/gmail"   ;; top-level Maildir
+   mu4e-sent-folder   "/.All Mail"       ;; folder for sent messages
+   mu4e-drafts-folder "/.Drafts"     ;; unfinished messages
+   mu4e-trash-folder  "/.Trash")      ;; trashed messages
+
+  (setq mu4e-bookmarks `(("date:today..now" "Today's messages" ?t)
+                         ("date:7d..now" "Last 7 days" ?w)
+                         ("mime:image/*" "Messages with images" ?p)
+                         ("flag:flagged" "Flagged messages" ?f)
+                         (,(concat "flag:unread AND "
+                                   "NOT flag:trashed AND "
+                                   "NOT maildir:/[Gmail].Spam AND "
+                                   "NOT maildir:/[Gmail].Trash")
+                          "Unread messages" ?u)))
 
   ;; ;;; Mail directory shortcuts
-  ;; (setq mu4e-maildir-shortcuts
-  ;;       '(("/inbox" . ?i)
-  ;;         ("/.Sent Mail" . ?s)
-  ;;         ("/.Trash" . ?t)
-  ;;         ("/.Drafts" . ?d)))
+  (setq mu4e-maildir-shortcuts
+        '(("/.All Mail" . ?i)
+          ("/.Spam" . ?s)
+          ("/.Trash" . ?t)
+          ("/.Drafts" . ?d)))
 
-  ;; ;;; msmtp
-  ;; (setq message-send-mail-function 'message-send-mail-with-sendmail
-  ;;       sendmail-program "msmtp"
-  ;;       message-sendmail-extra-arguments '("--read-envelope-from")
-  ;;       message-sendmail-f-is-evil 't
-  ;;       message-sendmail-extra-arguments '("-C" "/Users/matus/.spacemacs.d/msmtprc" "-a" "gmail"))
+  (add-hook 'mu4e-mark-execute-pre-hook
+            (lambda (mark msg)
+              (cond ((equal mark 'refile) (mu4e-action-retag-message msg "-\\Inbox"))
+                    ((equal mark 'trash) (mu4e-action-retag-message msg "-\\Inbox,-\\Starred"))
+                    ((equal mark 'flag) (mu4e-action-retag-message msg "-\\Inbox,\\Starred"))
+                    ((equal mark 'unflag) (mu4e-action-retag-message msg "-\\Starred")))))
 
-  ;; (with-eval-after-load 'mu4e-alert
-  ;;   ;; Enable Desktop notifications
-  ;;   (mu4e-alert-set-default-style 'notifier))   ; For Mac OSX (through the terminal notifier app)
+  ;;; msmtp
+  (setq message-send-mail-function 'message-send-mail-with-sendmail
+        sendmail-program "msmtp"
+        message-sendmail-extra-arguments '("--read-envelope-from")
+        message-sendmail-f-is-evil 't
+        message-sendmail-extra-arguments '("-C" "/Users/matus/.spacemacs.d/msmtprc" "-a" "gmail"))
+
+  (with-eval-after-load 'mu4e-alert
+    ;; Enable Desktop notifications
+    (mu4e-alert-set-default-style 'notifier))   ; For Mac OSX (through the terminal notifier app)
 
   ;; start agenda at startup
   (org-agenda-list)
   (switch-to-buffer "*Org Agenda*")
   (spacemacs/toggle-maximize-buffer)
+
+  ;; start the server
   (server-start)
   )
 ;; Do not write anything past this comment. This is where Emacs will
@@ -679,9 +734,10 @@ you should place your code here."
  '(global-page-break-lines-mode t)
  '(helm-display-header-line nil)
  '(helm-echo-input-in-header-line t)
+ '(ispell-program-name "/usr/local/bin/aspell")
  '(org-agenda-files
    (quote
-    ("/Users/matus/Documents/ORG/notes-local.org" "/Users/matus/Documents/ORG/todo-local.org" "/Users/matus/Dropbox/ORG/HOME/HomeOrganizer.org" "/Users/matus/Dropbox/ORG/org-share/cheatsheet.org" "/Users/matus/Dropbox/ORG/org-share/cluster-usage.org" "/Users/matus/Dropbox/ORG/org-share/learning-plan.org" "/Users/matus/Dropbox/ORG/org-share/python-datascience-notes.org" "/Users/matus/Dropbox/ORG/Moje/Notes.org" "/Users/matus/Dropbox/ORG/Moje/costs.org" "/Users/matus/Dropbox/ORG/Moje/productivity.org")))
+    ("/Users/matus/Dropbox/ORG/HOME/HomeOrganizer.org" "/Users/matus/Dropbox/ORG/org-share/cheatsheet.org" "/Users/matus/Dropbox/ORG/org-share/cluster-usage.org" "/Users/matus/Dropbox/ORG/org-share/learning-plan.org" "/Users/matus/Dropbox/ORG/org-share/python-datascience-notes.org" "/Users/matus/Dropbox/ORG/Moje/Notes.org" "/Users/matus/Dropbox/ORG/Moje/costs.org" "/Users/matus/Dropbox/ORG/Moje/productivity.org")))
  '(org-emphasis-alist
    (quote
     (("*" bold)
@@ -696,9 +752,10 @@ you should place your code here."
  '(org-hide-emphasis-markers t)
  '(org-hide-leading-stars t)
  '(org-startup-with-inline-images t)
+ '(org-tags-column -100)
  '(package-selected-packages
    (quote
-    (slack emojify circe oauth2 company-quickhelp xkcd evil-commentary focus orgit org-present moom org-mime julia-repl julia-mode flycheck-julia dockerfile-mode docker docker-tramp disaster company-c-headers cmake-mode clang-format slime-company slime common-lisp-snippets ranger mmm-mode markdown-toc markdown-mode gh-md web-beautify livid-mode json-mode json-snatcher json-reformat js2-refactor multiple-cursors js-doc company-tern dash-functional tern coffee-mode vimrc-mode dactyl-mode ein skewer-mode request-deferred websocket deferred js2-mode simple-httpd yaml-mode ox-reveal helm-w3m w3m csv-mode web-mode tagedit slim-mode scss-mode sass-mode pug-mode less-css-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data auctex-latexmk mu4e-maildirs-extension mu4e-alert ht flyspell-popup xterm-color shell-pop org-ref pdf-tools key-chord ivy tablist multi-term helm-bibtex parsebib eshell-z eshell-prompt-extras esh-help biblio biblio-core company-auctex auctex yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode helm-pydoc cython-mode company-anaconda anaconda-mode pythonic smeargle magit-gitflow helm-gitignore gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link evil-magit magit magit-popup git-commit with-editor reveal-in-osx-finder pbcopy osx-trash osx-dictionary launchctl org-projectile org-pomodoro alert log4e gntp org-download htmlize helm-company helm-c-yasnippet gnuplot fuzzy flyspell-correct-helm flyspell-correct flycheck-pos-tip pos-tip flycheck company-statistics company auto-yasnippet yasnippet auto-dictionary ac-ispell auto-complete ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint info+ indent-guide hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation hide-comnt help-fns+ helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async evil-unimpaired f s dash)))
+    (clojure-snippets clj-refactor inflections edn paredit peg cider-eval-sexp-fu cider sesman seq queue clojure-mode interleave go-guru go-eldoc flycheck-gometalinter company-go go-mode slack emojify circe oauth2 company-quickhelp xkcd evil-commentary focus orgit org-present moom org-mime julia-repl julia-mode flycheck-julia dockerfile-mode docker docker-tramp disaster company-c-headers cmake-mode clang-format slime-company slime common-lisp-snippets ranger mmm-mode markdown-toc markdown-mode gh-md web-beautify livid-mode json-mode json-snatcher json-reformat js2-refactor multiple-cursors js-doc company-tern dash-functional tern coffee-mode vimrc-mode dactyl-mode ein skewer-mode request-deferred websocket deferred js2-mode simple-httpd yaml-mode ox-reveal helm-w3m w3m csv-mode web-mode tagedit slim-mode scss-mode sass-mode pug-mode less-css-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data auctex-latexmk mu4e-maildirs-extension mu4e-alert ht flyspell-popup xterm-color shell-pop org-ref pdf-tools key-chord ivy tablist multi-term helm-bibtex parsebib eshell-z eshell-prompt-extras esh-help biblio biblio-core company-auctex auctex yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode helm-pydoc cython-mode company-anaconda anaconda-mode pythonic smeargle magit-gitflow helm-gitignore gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link evil-magit magit magit-popup git-commit with-editor reveal-in-osx-finder pbcopy osx-trash osx-dictionary launchctl org-projectile org-pomodoro alert log4e gntp org-download htmlize helm-company helm-c-yasnippet gnuplot fuzzy flyspell-correct-helm flyspell-correct flycheck-pos-tip pos-tip flycheck company-statistics company auto-yasnippet yasnippet auto-dictionary ac-ispell auto-complete ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint info+ indent-guide hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation hide-comnt help-fns+ helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async evil-unimpaired f s dash)))
  '(paradox-github-token t)
  '(spaceline-helm-mode t)
  '(spaceline-info-mode t)
